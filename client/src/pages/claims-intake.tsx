@@ -31,6 +31,27 @@ const claimFormSchema = z.object({
 export default function ClaimsIntake() {
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
   const [eligibilityStatus, setEligibilityStatus] = useState<EligibilityStatus | null>(null);
+  const [manualChecks, setManualChecks] = useState({
+    transactionType: {
+      isPurchaseOfGoodsOrServices: false,
+      isNotRestrictedTransaction: false,
+    },
+    purchaseMethod: {
+      wasCreditCardUsed: false,
+      wasNotCashOrTransfer: false,
+    },
+    transactionValue: {
+      overHundredPounds: false,
+      underThirtyThousandPounds: false,
+    },
+    timePeriod: {
+      withinSixYears: false,
+    },
+    reasonForClaim: {
+      isValidReason: false,
+      isNotChangeOfMind: false,
+    },
+  });
   const { toast } = useToast();
 
   const form = useForm<ClaimFormData>({
@@ -84,33 +105,51 @@ export default function ClaimsIntake() {
     },
   });
 
-  // Auto-run eligibility check when relevant fields change
-  useEffect(() => {
-    if (watchedValues.transactionAmount && watchedValues.transactionDate && watchedValues.reason) {
-      const checkEligibility = async () => {
-        try {
-          const response = await apiRequest("POST", "/api/eligibility-check", {
-            transactionAmount: watchedValues.transactionAmount,
-            transactionDate: watchedValues.transactionDate,
-            reason: watchedValues.reason,
-          });
-          const data = await response.json();
-          setEligibilityStatus(data);
-        } catch (error) {
-          console.error("Eligibility check failed:", error);
-          setEligibilityStatus(null);
-        }
-      };
-      
-      checkEligibility();
-    } else {
-      setEligibilityStatus(null);
-    }
-  }, [watchedValues.transactionAmount, watchedValues.transactionDate, watchedValues.reason]);
+  // Calculate overall eligibility based on manual checks
+  const calculateEligibility = () => {
+    const isEligible = 
+      manualChecks.transactionType.isPurchaseOfGoodsOrServices &&
+      manualChecks.transactionType.isNotRestrictedTransaction &&
+      manualChecks.purchaseMethod.wasCreditCardUsed &&
+      manualChecks.purchaseMethod.wasNotCashOrTransfer &&
+      manualChecks.transactionValue.overHundredPounds &&
+      manualChecks.transactionValue.underThirtyThousandPounds &&
+      manualChecks.timePeriod.withinSixYears &&
+      manualChecks.reasonForClaim.isValidReason &&
+      manualChecks.reasonForClaim.isNotChangeOfMind;
+
+    const transactionAmount = parseFloat(watchedValues.transactionAmount || "0");
+    const claimClass = transactionAmount >= 100 && transactionAmount < 1000 ? "Class 1" :
+                      transactionAmount >= 1000 && transactionAmount < 5000 ? "Class 2" :
+                      transactionAmount >= 5000 && transactionAmount < 10000 ? "Class 3" :
+                      transactionAmount >= 10000 && transactionAmount <= 30000 ? "Class 4" : "Unclassified";
+
+    return {
+      checks: manualChecks,
+      isEligible,
+      claimClass,
+    };
+  };
+
+  const currentEligibility = calculateEligibility();
+
+  const handleCheckboxChange = (category: string, field: string, value: boolean) => {
+    setManualChecks(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category as keyof typeof prev],
+        [field]: value,
+      },
+    }));
+  };
 
   const onSubmit = (data: ClaimFormData) => {
+    const eligibilityData = calculateEligibility();
     submitClaimMutation.mutate({
       ...data,
+      eligibilityChecks: eligibilityData.checks,
+      isEligible: eligibilityData.isEligible,
+      claimClass: eligibilityData.claimClass,
       evidenceFiles: evidenceFiles.map(file => ({
         name: file.name,
         size: file.size,
@@ -360,131 +399,146 @@ export default function ClaimsIntake() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {eligibilityStatus ? (
-                  <>
-                    {/* Transaction Type */}
-                    <div className="border border-border rounded-lg p-4">
-                      <h3 className="font-medium text-foreground mb-3">Transaction Type</h3>
-                      <div className="space-y-2">
-                        <label className="flex items-start space-x-3">
-                          <Checkbox 
-                            checked={eligibilityStatus.checks.transactionType.isPurchaseOfGoodsOrServices}
-                            disabled
-                            data-testid="checkbox-purchase-goods-services"
-                          />
-                          <span className="text-sm text-foreground">
-                            Is the transaction a purchase of goods or services?
-                          </span>
-                        </label>
-                        <label className="flex items-start space-x-3">
-                          <Checkbox 
-                            checked={eligibilityStatus.checks.transactionType.isNotRestrictedTransaction}
-                            disabled
-                            data-testid="checkbox-not-restricted"
-                          />
-                          <span className="text-sm text-foreground">
-                            Is it NOT a cash withdrawal, gambling transaction, foreign currency purchase, money order, or fine payment?
-                          </span>
-                        </label>
-                      </div>
+                <>
+                  {/* Transaction Type */}
+                  <div className="border border-border rounded-lg p-4">
+                    <h3 className="font-medium text-foreground mb-3">Transaction Type</h3>
+                    <div className="space-y-2">
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.transactionType.isPurchaseOfGoodsOrServices}
+                          onCheckedChange={(checked) => handleCheckboxChange('transactionType', 'isPurchaseOfGoodsOrServices', !!checked)}
+                          data-testid="checkbox-purchase-goods-services"
+                        />
+                        <span className="text-sm text-foreground">
+                          Is the transaction a purchase of goods or services?
+                        </span>
+                      </label>
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.transactionType.isNotRestrictedTransaction}
+                          onCheckedChange={(checked) => handleCheckboxChange('transactionType', 'isNotRestrictedTransaction', !!checked)}
+                          data-testid="checkbox-not-restricted"
+                        />
+                        <span className="text-sm text-foreground">
+                          Is it NOT a cash withdrawal, gambling transaction, foreign currency purchase, money order, or fine payment?
+                        </span>
+                      </label>
                     </div>
+                  </div>
 
-                    {/* Purchase Method */}
-                    <div className="border border-border rounded-lg p-4">
-                      <h3 className="font-medium text-foreground mb-3">Purchase Method</h3>
-                      <div className="space-y-2">
-                        <label className="flex items-start space-x-3">
-                          <Checkbox 
-                            checked={eligibilityStatus.checks.purchaseMethod.wasCreditCardUsed}
-                            disabled
-                            data-testid="checkbox-credit-card"
-                          />
-                          <span className="text-sm text-foreground">
-                            Was the purchase made using a credit card?
-                          </span>
-                        </label>
-                        <label className="flex items-start space-x-3">
-                          <Checkbox 
-                            checked={eligibilityStatus.checks.purchaseMethod.wasNotCashOrTransfer}
-                            disabled
-                            data-testid="checkbox-not-cash-transfer"
-                          />
-                          <span className="text-sm text-foreground">
-                            Was it NOT bought with cash or a money transfer from the credit card?
-                          </span>
-                        </label>
-                      </div>
+                  {/* Purchase Method */}
+                  <div className="border border-border rounded-lg p-4">
+                    <h3 className="font-medium text-foreground mb-3">Purchase Method</h3>
+                    <div className="space-y-2">
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.purchaseMethod.wasCreditCardUsed}
+                          onCheckedChange={(checked) => handleCheckboxChange('purchaseMethod', 'wasCreditCardUsed', !!checked)}
+                          data-testid="checkbox-credit-card"
+                        />
+                        <span className="text-sm text-foreground">
+                          Was the purchase made using a credit card?
+                        </span>
+                      </label>
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.purchaseMethod.wasNotCashOrTransfer}
+                          onCheckedChange={(checked) => handleCheckboxChange('purchaseMethod', 'wasNotCashOrTransfer', !!checked)}
+                          data-testid="checkbox-not-cash-transfer"
+                        />
+                        <span className="text-sm text-foreground">
+                          Was it NOT bought with cash or a money transfer from the credit card?
+                        </span>
+                      </label>
                     </div>
+                  </div>
 
-                    {/* Transaction Value */}
-                    <div className="border border-border rounded-lg p-4">
-                      <h3 className="font-medium text-foreground mb-3">Transaction Value</h3>
-                      <div className="space-y-2">
-                        <label className="flex items-start space-x-3">
-                          <Checkbox 
-                            checked={eligibilityStatus.checks.transactionValue.overHundredPounds}
-                            disabled
-                            data-testid="checkbox-over-hundred"
-                          />
-                          <span className="text-sm text-foreground">
-                            Did the single item purchased cost over £100?
-                          </span>
-                        </label>
-                        <label className="flex items-start space-x-3">
-                          <Checkbox 
-                            checked={eligibilityStatus.checks.transactionValue.underThirtyThousandPounds}
-                            disabled
-                            data-testid="checkbox-under-thirty-thousand"
-                          />
-                          <span className="text-sm text-foreground">
-                            Did the total cost of the item(s) purchased cost less than £30,000?
-                          </span>
-                        </label>
-                      </div>
+                  {/* Transaction Value */}
+                  <div className="border border-border rounded-lg p-4">
+                    <h3 className="font-medium text-foreground mb-3">Transaction Value</h3>
+                    <div className="space-y-2">
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.transactionValue.overHundredPounds}
+                          onCheckedChange={(checked) => handleCheckboxChange('transactionValue', 'overHundredPounds', !!checked)}
+                          data-testid="checkbox-over-hundred"
+                        />
+                        <span className="text-sm text-foreground">
+                          Did the single item purchased cost over £100?
+                        </span>
+                      </label>
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.transactionValue.underThirtyThousandPounds}
+                          onCheckedChange={(checked) => handleCheckboxChange('transactionValue', 'underThirtyThousandPounds', !!checked)}
+                          data-testid="checkbox-under-thirty-thousand"
+                        />
+                        <span className="text-sm text-foreground">
+                          Did the total cost of the item(s) purchased cost less than £30,000?
+                        </span>
+                      </label>
                     </div>
+                  </div>
 
-                    {/* Time Period */}
-                    <div className="border border-border rounded-lg p-4">
-                      <h3 className="font-medium text-foreground mb-3">Time Period</h3>
-                      <div className="space-y-2">
-                        <label className="flex items-start space-x-3">
-                          <Checkbox 
-                            checked={eligibilityStatus.checks.timePeriod.withinSixYears}
-                            disabled
-                            data-testid="checkbox-within-six-years"
-                          />
-                          <span className="text-sm text-foreground">
-                            Was the claim made within six years of the purchase date?
-                          </span>
-                        </label>
-                      </div>
+                  {/* Time Period */}
+                  <div className="border border-border rounded-lg p-4">
+                    <h3 className="font-medium text-foreground mb-3">Time Period</h3>
+                    <div className="space-y-2">
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.timePeriod.withinSixYears}
+                          onCheckedChange={(checked) => handleCheckboxChange('timePeriod', 'withinSixYears', !!checked)}
+                          data-testid="checkbox-within-six-years"
+                        />
+                        <span className="text-sm text-foreground">
+                          Was the claim made within six years of the purchase date?
+                        </span>
+                      </label>
                     </div>
+                  </div>
 
-                    {/* Eligibility Result */}
-                    <div className={`p-4 rounded-lg ${eligibilityStatus.isEligible ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <CheckCircle className={`h-5 w-5 ${eligibilityStatus.isEligible ? 'text-green-600' : 'text-red-600'}`} />
-                        <h4 className="font-medium text-foreground">Preliminary Assessment</h4>
-                      </div>
-                      <p className={`text-sm ${eligibilityStatus.isEligible ? 'text-green-700' : 'text-red-700'}`} data-testid="text-eligibility-result">
-                        {eligibilityStatus.isEligible 
-                          ? "This claim appears to be eligible for Section 75 protection"
-                          : "This claim does not meet Section 75 eligibility criteria"
-                        }
-                      </p>
+                  {/* Reason for Claim */}
+                  <div className="border border-border rounded-lg p-4">
+                    <h3 className="font-medium text-foreground mb-3">Reason for Claim</h3>
+                    <div className="space-y-2">
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.reasonForClaim.isValidReason}
+                          onCheckedChange={(checked) => handleCheckboxChange('reasonForClaim', 'isValidReason', !!checked)}
+                          data-testid="checkbox-valid-reason"
+                        />
+                        <span className="text-sm text-foreground">
+                          Is the reason for the claim one of: faulty goods, misrepresentation, non-delivery, or supplier failure?
+                        </span>
+                      </label>
+                      <label className="flex items-start space-x-3 cursor-pointer">
+                        <Checkbox 
+                          checked={manualChecks.reasonForClaim.isNotChangeOfMind}
+                          onCheckedChange={(checked) => handleCheckboxChange('reasonForClaim', 'isNotChangeOfMind', !!checked)}
+                          data-testid="checkbox-not-change-of-mind"
+                        />
+                        <span className="text-sm text-foreground">
+                          Is the reason for the claim NOT simply "change of mind"?
+                        </span>
+                      </label>
                     </div>
-                  </>
-                ) : (
-                  <div className="p-4 bg-muted rounded-lg">
+                  </div>
+
+                  {/* Eligibility Result */}
+                  <div className={`p-4 rounded-lg ${currentEligibility.isEligible ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                     <div className="flex items-center space-x-2 mb-2">
-                      <CheckCircle className="h-5 w-5 text-primary" />
+                      <CheckCircle className={`h-5 w-5 ${currentEligibility.isEligible ? 'text-green-600' : 'text-red-600'}`} />
                       <h4 className="font-medium text-foreground">Preliminary Assessment</h4>
                     </div>
-                    <p className="text-sm text-muted-foreground" data-testid="text-eligibility-placeholder">
-                      Complete the form above to see automatic eligibility assessment
+                    <p className={`text-sm ${currentEligibility.isEligible ? 'text-green-700' : 'text-red-700'}`} data-testid="text-eligibility-result">
+                      {currentEligibility.isEligible 
+                        ? "This claim appears to be eligible for Section 75 protection"
+                        : "This claim does not meet Section 75 eligibility criteria"
+                      }
                     </p>
                   </div>
-                )}
+                </>
               </CardContent>
             </Card>
 
@@ -524,16 +578,14 @@ export default function ClaimsIntake() {
                   </div>
                 </div>
 
-                {eligibilityStatus && (
-                  <div className="mt-4 p-3 bg-primary/10 rounded-md">
-                    <p className="text-sm font-medium text-primary" data-testid="text-calculated-class">
-                      Calculated Class: {" "}
-                      <span className={`px-2 py-1 rounded text-xs ${getClaimClassColor(eligibilityStatus.claimClass)}`}>
-                        {eligibilityStatus.claimClass}
-                      </span>
-                    </p>
-                  </div>
-                )}
+                <div className="mt-4 p-3 bg-primary/10 rounded-md">
+                  <p className="text-sm font-medium text-primary" data-testid="text-calculated-class">
+                    Calculated Class: {" "}
+                    <span className={`px-2 py-1 rounded text-xs ${getClaimClassColor(currentEligibility.claimClass)}`}>
+                      {currentEligibility.claimClass}
+                    </span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
