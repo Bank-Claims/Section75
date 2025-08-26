@@ -1,0 +1,45 @@
+Build a claims lifecycle for UK banks by automating manual, administrative tasks, starting with the claims intake process (V1). This phased approach will progressively improve the customer experience by reducing claim resolution time through automation, transparency, and faster communication.
+It will also empower claims managers by providing them with an easy assessment of claim validity and the necessary tools (V2) to focus on complex, high-value cases. Ultimately, the system will increase claims accuracy and operational efficiency by moving towards a fully autonomous claims process for straightforward cases (V3), allowing human expertise to be applied where it is most needed.
+
+The system automatically processes multimodal inputs (documents, images, text) to extract key information, performs a basic Section 75 eligibility check, and routes the claim to the correct claims manager.For initial stage just access the files and store in the local drive. It generates a claim ID and stores the case in the database.
+
+Below are the request that needs to be given by the user.
+
+1. Claim summary
+2. Supporting evidences(these are attachments that will be stored in the local drive)
+3. Eligibility check
+
+Checklist: S75 Eligibility Check
+This checklist outlines the basic criteria for an automated system to determine if a claim is potentially eligible for Section 75 protection.
+Transaction Type:
+[ ] Is the transaction a purchase of goods or services?
+[ ] Is it NOT a cash withdrawal, gambling transaction, foreign currency purchase, money order, or fine payment?
+Purchase Method:
+[ ] Was the purchase made using a credit card?
+[ ] Was it NOT bought with cash or a money transfer from the credit card?
+Transaction Value:
+[ ] Did the single item purchased cost over £100?
+[ ] Did the total cost of the item(s) purchased cost less than £30,000?
+Reason for Claim:
+[ ] Is the reason for the claim one of the following:
+[ ] Faulty goods or services?
+[ ] Misrepresentation (item not as described)?
+[ ] Non-delivery?
+[ ] Supplier failure (company went out of business)?
+[ ] Is the reason for the claim NOT simply "change of mind"?
+Time Period:
+[ ] Was the claim made within six years of the purchase date or the date the goods/services were due to be received?
+
+Based on the claim Classify into below class
+
+Class 1
+£100 - £1,000
+
+Class 2
+£1,000 - £5,000
+
+Class 3
+£5,000 - £10,000
+
+Class 4
+£10,000 - £30,000
