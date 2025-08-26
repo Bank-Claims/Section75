@@ -525,19 +525,6 @@ export default function ClaimsIntake() {
                     </div>
                   </div>
 
-                  {/* Eligibility Result */}
-                  <div className={`p-4 rounded-lg ${currentEligibility.isEligible ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <CheckCircle className={`h-5 w-5 ${currentEligibility.isEligible ? 'text-green-600' : 'text-red-600'}`} />
-                      <h4 className="font-medium text-foreground">Preliminary Assessment</h4>
-                    </div>
-                    <p className={`text-sm ${currentEligibility.isEligible ? 'text-green-700' : 'text-red-700'}`} data-testid="text-eligibility-result">
-                      {currentEligibility.isEligible 
-                        ? "This claim appears to be eligible for Section 75 protection"
-                        : "This claim does not meet Section 75 eligibility criteria"
-                      }
-                    </p>
-                  </div>
                 </>
               </CardContent>
             </Card>
