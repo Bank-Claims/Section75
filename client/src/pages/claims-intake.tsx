@@ -87,11 +87,24 @@ export default function ClaimsIntake() {
   // Auto-run eligibility check when relevant fields change
   useEffect(() => {
     if (watchedValues.transactionAmount && watchedValues.transactionDate && watchedValues.reason) {
-      eligibilityMutation.mutate({
-        transactionAmount: watchedValues.transactionAmount,
-        transactionDate: watchedValues.transactionDate,
-        reason: watchedValues.reason,
-      });
+      const checkEligibility = async () => {
+        try {
+          const response = await apiRequest("POST", "/api/eligibility-check", {
+            transactionAmount: watchedValues.transactionAmount,
+            transactionDate: watchedValues.transactionDate,
+            reason: watchedValues.reason,
+          });
+          const data = await response.json();
+          setEligibilityStatus(data);
+        } catch (error) {
+          console.error("Eligibility check failed:", error);
+          setEligibilityStatus(null);
+        }
+      };
+      
+      checkEligibility();
+    } else {
+      setEligibilityStatus(null);
     }
   }, [watchedValues.transactionAmount, watchedValues.transactionDate, watchedValues.reason]);
 
