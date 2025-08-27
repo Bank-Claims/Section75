@@ -247,6 +247,49 @@ export default function ClaimsIntake() {
                     )}
                   </div>
 
+                  {/* Supporting Evidence Section */}
+                  <div className="border-t border-border pt-6">
+                    <div className="flex items-center mb-4">
+                      <CloudUpload className="mr-3 h-5 w-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Supporting Evidence</h3>
+                    </div>
+                    
+                    <ObjectUploader
+                      maxNumberOfFiles={10}
+                      maxFileSize={10485760}
+                      onGetUploadParameters={handleFileUpload}
+                      onComplete={handleUploadComplete}
+                      data-testid="object-uploader"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CloudUpload className="h-4 w-4" />
+                        <span>Upload Evidence Files</span>
+                      </div>
+                    </ObjectUploader>
+
+                    {evidenceFiles.length > 0 && (
+                      <div className="mt-6 space-y-3" data-testid="evidence-file-list">
+                        {evidenceFiles.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-3 bg-secondary rounded-md">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+                                <CloudUpload className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground" data-testid={`text-evidence-filename-${file.id}`}>
+                                  {file.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full"
@@ -266,52 +309,6 @@ export default function ClaimsIntake() {
                     )}
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-
-            {/* File Upload Card */}
-            <Card data-testid="card-file-upload">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <CloudUpload className="mr-3 h-5 w-5 text-primary" />
-                  Supporting Evidence
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ObjectUploader
-                  maxNumberOfFiles={10}
-                  maxFileSize={10485760}
-                  onGetUploadParameters={handleFileUpload}
-                  onComplete={handleUploadComplete}
-                  data-testid="object-uploader"
-                >
-                  <div className="flex items-center gap-2">
-                    <CloudUpload className="h-4 w-4" />
-                    <span>Upload Evidence Files</span>
-                  </div>
-                </ObjectUploader>
-
-                {evidenceFiles.length > 0 && (
-                  <div className="mt-6 space-y-3" data-testid="evidence-file-list">
-                    {evidenceFiles.map((file) => (
-                      <div key={file.id} className="flex items-center justify-between p-3 bg-secondary rounded-md">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
-                            <CloudUpload className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground" data-testid={`text-evidence-filename-${file.id}`}>
-                              {file.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {(file.size / (1024 * 1024)).toFixed(2)} MB
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
