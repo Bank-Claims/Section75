@@ -163,8 +163,8 @@ export default function ManagerDashboard() {
                 <div className="flex items-center space-x-3">
                   <FileText className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-sm font-medium text-secondary-foreground/90 mb-1">Total Claims</p>
-                    <p className="text-2xl font-semibold text-secondary-foreground">{stats.total}</p>
+                    <p className="text-sm font-medium text-white mb-1">Total Claims</p>
+                    <p className="text-2xl font-semibold text-white">{stats.total}</p>
                   </div>
                 </div>
               </div>
@@ -172,8 +172,8 @@ export default function ManagerDashboard() {
                 <div className="flex items-center space-x-3">
                   <Clock className="h-5 w-5 text-yellow-400" />
                   <div>
-                    <p className="text-sm font-medium text-secondary-foreground/90 mb-1">Pending Review</p>
-                    <p className="text-2xl font-semibold text-secondary-foreground">{stats.pending}</p>
+                    <p className="text-sm font-medium text-white mb-1">Pending Review</p>
+                    <p className="text-2xl font-semibold text-white">{stats.pending}</p>
                   </div>
                 </div>
               </div>
@@ -181,8 +181,8 @@ export default function ManagerDashboard() {
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="h-5 w-5 text-green-400" />
                   <div>
-                    <p className="text-sm font-medium text-secondary-foreground/90 mb-1">Approved</p>
-                    <p className="text-2xl font-semibold text-secondary-foreground">{stats.approved}</p>
+                    <p className="text-sm font-medium text-white mb-1">Approved</p>
+                    <p className="text-2xl font-semibold text-white">{stats.approved}</p>
                   </div>
                 </div>
               </div>
@@ -190,8 +190,8 @@ export default function ManagerDashboard() {
                 <div className="flex items-center space-x-3">
                   <PoundSterling className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-sm font-medium text-secondary-foreground/90 mb-1">Total Value</p>
-                    <p className="text-2xl font-semibold text-secondary-foreground">
+                    <p className="text-sm font-medium text-white mb-1">Total Value</p>
+                    <p className="text-2xl font-semibold text-white">
                       £{stats.totalValue.toLocaleString()}
                     </p>
                   </div>
