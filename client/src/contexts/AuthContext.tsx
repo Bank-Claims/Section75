@@ -26,6 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/me"],
     retry: false,
     refetchOnWindowFocus: false,
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache the data
   });
 
   const loginMutation = useMutation({
@@ -33,10 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiRequest("POST", "/api/auth/login", { username, password });
       return response.json();
     },
-    onSuccess: () => {
-      // Force immediate refetch of user data
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+    onSuccess: async (data) => {
+      // Set user data immediately in cache
+      queryClient.setQueryData(["/api/auth/me"], data.user);
+      // Small delay to ensure session is saved, then refetch
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      }, 100);
     },
   });
 
