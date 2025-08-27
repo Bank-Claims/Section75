@@ -265,7 +265,7 @@ export default function ClaimsIntake() {
                     {evidenceFiles.length > 0 && (
                       <div className="mt-6 space-y-3" data-testid="evidence-file-list">
                         {evidenceFiles.map((file) => (
-                          <div key={file.id} className="flex items-center justify-between p-3 bg-secondary rounded-md">
+                          <div key={file.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-md">
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
                                 <CloudUpload className="h-4 w-4 text-primary" />
@@ -279,6 +279,16 @@ export default function ClaimsIntake() {
                                 </p>
                               </div>
                             </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEvidenceFiles(files => files.filter(f => f.id !== file.id))}
+                              data-testid={`button-remove-file-${file.id}`}
+                              className="text-foreground hover:text-destructive"
+                            >
+                              Remove
+                            </Button>
                           </div>
                         ))}
                       </div>
