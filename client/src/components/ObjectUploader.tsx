@@ -74,9 +74,15 @@ export function ObjectUploader({
       })
   );
 
+  const handleButtonClick = () => {
+    console.log("Upload button clicked, current showModal:", showModal);
+    setShowModal(true);
+    console.log("Modal should now be open");
+  };
+
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className={buttonClassName} data-testid="button-object-uploader">
+      <Button onClick={handleButtonClick} className={buttonClassName} data-testid="button-object-uploader">
         {children}
       </Button>
 
@@ -86,6 +92,9 @@ export function ObjectUploader({
         onRequestClose={() => setShowModal(false)}
         proudlyDisplayPoweredByUppy={false}
       />
+      
+      {/* Debug info */}
+      {showModal && <div style={{position: 'fixed', top: 0, left: 0, background: 'red', color: 'white', padding: '10px', zIndex: 9999}}>Modal State: OPEN</div>}
     </div>
   );
 }

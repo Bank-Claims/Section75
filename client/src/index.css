@@ -1,9 +1,9 @@
+/* Uppy CSS */
+@import url("https://releases.transloadit.com/uppy/v4.0.0/uppy.min.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Uppy CSS */
-@import url("https://releases.transloadit.com/uppy/v4.0.0/uppy.min.css");
 
 :root {
   --background: hsl(0 0% 100%);
