@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").notNull().default("Customer"),
 });
 
 export const claims = pgTable("claims", {
@@ -31,6 +32,7 @@ export const claims = pgTable("claims", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  role: true,
 });
 
 export const insertClaimSchema = createInsertSchema(claims).omit({
