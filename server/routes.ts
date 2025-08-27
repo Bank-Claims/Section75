@@ -85,13 +85,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.username = user.username;
       req.session.role = user.role;
 
-      res.json({
-        message: "Login successful",
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-        },
+      // Force session save
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Session save failed" });
+        }
+        
+        console.log("Session saved successfully:", {
+          userId: req.session.userId,
+          username: req.session.username,
+          role: req.session.role
+        });
+
+        res.json({
+          message: "Login successful",
+          user: {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+          },
+        });
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -109,15 +123,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", (req, res) => {
+    console.log("Auth check - Session data:", req.session);
     if (!req.session.userId) {
+      console.log("No session found");
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    res.json({
+    const userData = {
       id: req.session.userId,
       username: req.session.username,
       role: req.session.role,
-    });
+    };
+    console.log("Returning user data:", userData);
+    res.json(userData);
   });
 
   // Helper function to calculate claim classification
