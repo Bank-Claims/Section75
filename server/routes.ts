@@ -1,12 +1,15 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertClaimSchema, eligibilityCheckSchema, type EligibilityCheck, insertUserSchema } from "@shared/schema";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import multer, { type Multer } from "multer";
+import path from "path";
+import fs from "fs";
+import { randomUUID } from "crypto";
 
 // Extend session data type to include user info
 declare module "express-session" {
@@ -18,6 +21,40 @@ declare module "express-session" {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up multer for file uploads
+  const storage_multer = multer.diskStorage({
+    destination: (req: any, file: any, cb: any) => {
+      const evidencesDir = path.join(process.cwd(), 'evidences');
+      if (!fs.existsSync(evidencesDir)) {
+        fs.mkdirSync(evidencesDir, { recursive: true });
+      }
+      cb(null, evidencesDir);
+    },
+    filename: (req: any, file: any, cb: any) => {
+      const uniqueName = `${randomUUID()}-${file.originalname}`;
+      cb(null, uniqueName);
+    }
+  });
+
+  const upload = multer({ 
+    storage: storage_multer,
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+      files: 10 // Max 10 files
+    },
+    fileFilter: (req: any, file: any, cb: any) => {
+      const allowedTypes = /pdf|jpg|jpeg|png|gif|doc|docx/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only PDF, image, and document files are allowed'));
+      }
+    }
+  });
+
   // Set up session middleware
   const pgStore = connectPg(session);
   app.use(
@@ -179,30 +216,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return { checks, isEligible };
   }
 
-  // Object storage endpoints for file uploads
-  app.get("/objects/:objectPath(*)", async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
+  // Local file upload endpoints
+  app.post("/api/upload-evidence", upload.array('files', 10), async (req: any, res: any) => {
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error accessing object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
       }
-      return res.sendStatus(500);
+
+      const uploadedFiles = req.files.map((file: any) => ({
+        id: file.filename,
+        name: file.originalname,
+        url: `/api/evidence/${file.filename}`,
+        size: file.size,
+        type: file.mimetype
+      }));
+
+      res.json({ files: uploadedFiles });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      res.status(500).json({ error: "Failed to upload files" });
     }
   });
 
-  app.post("/api/objects/upload", async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
-    try {
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
-    } catch (error) {
-      console.error("Error generating upload URL:", error);
-      res.status(500).json({ error: "Failed to generate upload URL" });
+  // Serve evidence files
+  app.get("/api/evidence/:filename", (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(process.cwd(), 'evidences', filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found" });
     }
+
+    res.sendFile(filePath);
   });
 
   // Claims API endpoints (Customer role can create claims)

@@ -14,7 +14,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Edit, CloudUpload, Send } from "lucide-react";
 import type { ClaimFormData, EvidenceFile } from "@/lib/types";
-import type { UploadResult } from "@uppy/core";
+// Removed @uppy/core dependency for local uploads
 
 const claimFormSchema = z.object({
   customerName: z.string().min(1, "Customer name is required"),
@@ -80,30 +80,21 @@ export default function ClaimsIntake() {
   }, [submitClaimMutation, evidenceFiles]);
 
   const handleFileUpload = useCallback(async () => {
-    try {
-      const response = await apiRequest("POST", "/api/objects/upload", {});
-      const { uploadURL } = await response.json();
-      return {
-        method: "PUT" as const,
-        url: uploadURL,
-      };
-    } catch (error) {
-      toast({
-        title: "Upload error",
-        description: "Failed to get upload URL",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  }, [toast]);
+    // This function is no longer needed for local uploads
+    // But keeping for compatibility with ObjectUploader interface
+    return {
+      method: "PUT" as const,
+      url: "/api/upload-evidence",
+    };
+  }, []);
 
-  const handleUploadComplete = useCallback((result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    const uploadedFiles = result.successful?.map((file) => ({
-      id: Math.random().toString(36).substring(7),
+  const handleUploadComplete = useCallback((result: any) => {
+    const uploadedFiles = result.successful?.map((file: any) => ({
+      id: file.id || Math.random().toString(36).substring(7),
       name: file.name || "Unknown file",
       size: file.size || 0,
       type: file.type || "application/octet-stream",
-      url: file.uploadURL,
+      url: file.uploadURL || file.url,
     }));
 
     if (uploadedFiles) {

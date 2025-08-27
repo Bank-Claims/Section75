@@ -68,53 +68,51 @@ export function ObjectUploader({
   };
 
   const startUploads = async (files: UploadingFile[]) => {
-    for (const uploadingFile of files) {
-      try {
-        // Set to uploading
-        setUploadingFiles(prev => prev.map(f => 
-          f.file === uploadingFile.file ? { ...f, status: 'uploading' } : f
-        ));
+    try {
+      // Set all files to uploading
+      setUploadingFiles(prev => prev.map(f => ({ ...f, status: 'uploading' as const })));
 
-        // Get upload URL
-        const { url } = await onGetUploadParameters();
+      // Create FormData
+      const formData = new FormData();
+      files.forEach(uploadingFile => {
+        formData.append('files', uploadingFile.file);
+      });
+
+      // Upload files
+      const response = await fetch('/api/upload-evidence', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
         
-        // Upload file
-        const response = await fetch(url, {
-          method: 'PUT',
-          body: uploadingFile.file,
-          headers: {
-            'Content-Type': uploadingFile.file.type,
-          },
-        });
+        // Mark all as completed
+        setUploadingFiles(prev => prev.map((f, index) => ({
+          ...f, 
+          status: 'completed' as const, 
+          progress: 100,
+          uploadURL: result.files[index]?.url
+        })));
 
-        if (response.ok) {
-          // Mark as completed
-          setUploadingFiles(prev => prev.map(f => 
-            f.file === uploadingFile.file ? { ...f, status: 'completed', progress: 100, uploadURL: url } : f
-          ));
-        } else {
-          throw new Error('Upload failed');
-        }
-      } catch (error) {
-        // Mark as error
-        setUploadingFiles(prev => prev.map(f => 
-          f.file === uploadingFile.file ? { ...f, status: 'error' } : f
-        ));
+        // Call onComplete
+        setTimeout(() => {
+          onComplete?.({
+            successful: result.files.map((file: any) => ({
+              name: file.name,
+              uploadURL: file.url,
+              id: file.id
+            }))
+          });
+        }, 500);
+      } else {
+        throw new Error('Upload failed');
       }
+    } catch (error) {
+      console.error('Upload error:', error);
+      // Mark all as error
+      setUploadingFiles(prev => prev.map(f => ({ ...f, status: 'error' as const })));
     }
-
-    // Call onComplete when all uploads are done
-    setTimeout(() => {
-      const completedFiles = files.filter(f => f.status === 'completed');
-      if (completedFiles.length > 0) {
-        onComplete?.({
-          successful: completedFiles.map(f => ({
-            name: f.file.name,
-            uploadURL: f.uploadURL,
-          }))
-        });
-      }
-    }, 500);
   };
 
   const removeFile = (fileToRemove: File) => {
