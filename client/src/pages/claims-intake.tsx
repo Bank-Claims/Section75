@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -67,7 +67,7 @@ export default function ClaimsIntake() {
     },
   });
 
-  const onSubmit = (data: ClaimFormData) => {
+  const onSubmit = useCallback((data: ClaimFormData) => {
     submitClaimMutation.mutate({
       ...data,
       evidenceFiles: evidenceFiles.map(file => ({
@@ -77,9 +77,9 @@ export default function ClaimsIntake() {
         url: file.url,
       })),
     });
-  };
+  }, [submitClaimMutation, evidenceFiles]);
 
-  const handleFileUpload = async () => {
+  const handleFileUpload = useCallback(async () => {
     try {
       const response = await apiRequest("POST", "/api/objects/upload", {});
       const { uploadURL } = await response.json();
@@ -95,9 +95,9 @@ export default function ClaimsIntake() {
       });
       throw error;
     }
-  };
+  }, [toast]);
 
-  const handleUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+  const handleUploadComplete = useCallback((result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
     const uploadedFiles = result.successful?.map((file) => ({
       id: Math.random().toString(36).substring(7),
       name: file.name || "Unknown file",
@@ -114,7 +114,7 @@ export default function ClaimsIntake() {
         description: `${uploadedFiles.length} file(s) uploaded`,
       });
     }
-  };
+  }, [toast]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -229,7 +229,11 @@ export default function ClaimsIntake() {
 
                   <div>
                     <Label htmlFor="reason">Reason for Claim *</Label>
-                    <Select onValueChange={(value) => form.setValue("reason", value)} data-testid="select-reason">
+                    <Select 
+                      value={form.watch("reason")} 
+                      onValueChange={(value) => form.setValue("reason", value)} 
+                      data-testid="select-reason"
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select reason" />
                       </SelectTrigger>
