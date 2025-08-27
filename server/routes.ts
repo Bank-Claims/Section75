@@ -1,11 +1,120 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertClaimSchema, eligibilityCheckSchema, type EligibilityCheck } from "@shared/schema";
+import { insertClaimSchema, eligibilityCheckSchema, type EligibilityCheck, insertUserSchema } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { z } from "zod";
+import bcrypt from "bcrypt";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+// Extend session data type to include user info
+declare module "express-session" {
+  interface SessionData {
+    userId: string;
+    username: string;
+    role: string;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up session middleware
+  const pgStore = connectPg(session);
+  app.use(
+    session({
+      store: new pgStore({
+        conString: process.env.DATABASE_URL,
+        createTableIfMissing: true,
+      }),
+      secret: process.env.SESSION_SECRET || "default-secret-change-in-production",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: false, // Set to true in production with HTTPS
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      },
+    })
+  );
+
+  // Authentication middleware
+  function requireAuth(req: any, res: any, next: any) {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    next();
+  }
+
+  function requireRole(roles: string[]) {
+    return (req: any, res: any, next: any) => {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      if (!roles.includes(req.session.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      next();
+    };
+  }
+
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Set session data
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Could not log out" });
+      }
+      res.json({ message: "Logout successful" });
+    });
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    res.json({
+      id: req.session.userId,
+      username: req.session.username,
+      role: req.session.role,
+    });
+  });
+
   // Helper function to calculate claim classification
   function calculateClaimClass(amount: number): string {
     if (amount >= 100 && amount < 1000) return "Class 1";
@@ -88,8 +197,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Claims API endpoints
-  app.post("/api/claims", async (req, res) => {
+  // Claims API endpoints (Customer role can create claims)
+  app.post("/api/claims", requireRole(["Customer"]), async (req, res) => {
     try {
       const validatedData = insertClaimSchema.parse(req.body);
       
@@ -123,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/claims", async (req, res) => {
+  app.get("/api/claims", requireRole(["Claim Processor"]), async (req, res) => {
     try {
       const claims = await storage.getAllClaims();
       res.json(claims);
@@ -146,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/claims/:id/status", async (req, res) => {
+  app.patch("/api/claims/:id/status", requireRole(["Claim Processor"]), async (req, res) => {
     try {
       const { status } = req.body;
       if (!status) {
