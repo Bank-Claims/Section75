@@ -163,26 +163,26 @@ export default function ManagerDashboard() {
                 <div className="flex items-center space-x-3">
                   <FileText className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-2xl font-semibold text-foreground">{stats.total}</p>
-                    <p className="text-sm text-muted-foreground">Total Claims</p>
+                    <p className="text-2xl font-semibold text-secondary-foreground">{stats.total}</p>
+                    <p className="text-sm text-secondary-foreground/70">Total Claims</p>
                   </div>
                 </div>
               </div>
               <div className="p-4 bg-secondary rounded-lg" data-testid="stat-pending-claims">
                 <div className="flex items-center space-x-3">
-                  <Clock className="h-5 w-5 text-yellow-600" />
+                  <Clock className="h-5 w-5 text-yellow-400" />
                   <div>
-                    <p className="text-2xl font-semibold text-foreground">{stats.pending}</p>
-                    <p className="text-sm text-muted-foreground">Pending Review</p>
+                    <p className="text-2xl font-semibold text-secondary-foreground">{stats.pending}</p>
+                    <p className="text-sm text-secondary-foreground/70">Pending Review</p>
                   </div>
                 </div>
               </div>
               <div className="p-4 bg-secondary rounded-lg" data-testid="stat-approved-claims">
                 <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-green-400" />
                   <div>
-                    <p className="text-2xl font-semibold text-foreground">{stats.approved}</p>
-                    <p className="text-sm text-muted-foreground">Approved</p>
+                    <p className="text-2xl font-semibold text-secondary-foreground">{stats.approved}</p>
+                    <p className="text-sm text-secondary-foreground/70">Approved</p>
                   </div>
                 </div>
               </div>
@@ -190,10 +190,10 @@ export default function ManagerDashboard() {
                 <div className="flex items-center space-x-3">
                   <PoundSterling className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-2xl font-semibold text-foreground">
+                    <p className="text-2xl font-semibold text-secondary-foreground">
                       £{stats.totalValue.toLocaleString()}
                     </p>
-                    <p className="text-sm text-muted-foreground">Total Value</p>
+                    <p className="text-sm text-secondary-foreground/70">Total Value</p>
                   </div>
                 </div>
               </div>
