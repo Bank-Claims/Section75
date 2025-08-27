@@ -29,6 +29,8 @@ services:
       SESSION_SECRET: your-production-secret-key-change-this
       NODE_ENV: production
       PORT: 5000
+    volumes:
+      - evidence_files:/app/evidences
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,3 +38,4 @@ services:
 
 volumes:
   postgres_data:
+  evidence_files:
