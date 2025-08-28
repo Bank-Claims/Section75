@@ -21,28 +21,19 @@ declare module "express-session" {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up multer for file uploads
-  const storage_multer = multer.diskStorage({
-    destination: (req: any, file: any, cb: any) => {
-      const evidencesDir = path.join(process.cwd(), 'evidences');
-      if (!fs.existsSync(evidencesDir)) {
-        fs.mkdirSync(evidencesDir, { recursive: true });
-      }
-      cb(null, evidencesDir);
-    },
-    filename: (req: any, file: any, cb: any) => {
-      const uniqueName = `${randomUUID()}-${file.originalname}`;
-      cb(null, uniqueName);
-    }
-  });
+  // Set up multer for file uploads with memory storage for better performance
+  const storage_multer = multer.memoryStorage();
 
   const upload = multer({ 
     storage: storage_multer,
     limits: {
       fileSize: 10 * 1024 * 1024, // 10MB limit
-      files: 10 // Max 10 files
+      files: 10, // Max 10 files
+      fieldSize: 10 * 1024 * 1024, // 10MB field size
+      parts: 20 // Max parts
     },
     fileFilter: (req: any, file: any, cb: any) => {
+      console.log(`[${new Date().toISOString()}] Processing file: ${file.originalname}`);
       const allowedTypes = /pdf|jpg|jpeg|png|gif|doc|docx/;
       const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
       const mimetype = allowedTypes.test(file.mimetype);
@@ -216,20 +207,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return { checks, isEligible };
   }
 
-  // Local file upload endpoints
+  // Local file upload endpoints with memory storage and async file writing
   app.post("/api/upload-evidence", upload.array('files', 10), async (req: any, res: any) => {
+    const startTime = Date.now();
+    console.log(`[${new Date().toISOString()}] File upload started`);
+    
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
       }
 
-      const uploadedFiles = req.files.map((file: any) => ({
-        id: file.filename,
-        name: file.originalname,
-        url: `/api/evidence/${file.filename}`,
-        size: file.size,
-        type: file.mimetype
+      console.log(`[${new Date().toISOString()}] Processing ${req.files.length} files`);
+
+      // Ensure evidences directory exists
+      const evidencesDir = path.join(process.cwd(), 'evidences');
+      if (!fs.existsSync(evidencesDir)) {
+        fs.mkdirSync(evidencesDir, { recursive: true });
+      }
+
+      const uploadedFiles = await Promise.all(req.files.map(async (file: any) => {
+        const uniqueName = `${randomUUID()}-${file.originalname}`;
+        const filePath = path.join(evidencesDir, uniqueName);
+        
+        // Write file asynchronously to disk
+        await fs.promises.writeFile(filePath, file.buffer);
+        
+        console.log(`[${new Date().toISOString()}] Saved file: ${file.originalname} (${file.size} bytes)`);
+        
+        return {
+          id: uniqueName,
+          name: file.originalname,
+          url: `/api/evidence/${uniqueName}`,
+          size: file.size,
+          type: file.mimetype
+        };
       }));
+
+      const endTime = Date.now();
+      console.log(`[${new Date().toISOString()}] File upload completed in ${endTime - startTime}ms`);
 
       res.json({ files: uploadedFiles });
     } catch (error) {
