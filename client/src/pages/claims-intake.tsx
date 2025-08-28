@@ -28,6 +28,7 @@ const claimFormSchema = z.object({
 
 export default function ClaimsIntake() {
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
+  const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<ClaimFormData>({
@@ -52,23 +53,32 @@ export default function ClaimsIntake() {
       console.log("Claim submission response:", result);
       return result;
     },
+    onMutate: () => {
+      console.log("Setting isSubmittingClaim to true");
+      setIsSubmittingClaim(true);
+    },
     onSuccess: (data) => {
       console.log("Claim submission successful:", data);
       
-      // Clear any existing toasts first to avoid confusion
-      setTimeout(() => {
-        toast({
-          title: "✅ Claim submitted successfully",
-          description: `Claim ${data.claimNumber} has been created and is under review.`,
-        });
-      }, 100);
+      // Only show success message if we're actually submitting a claim
+      if (isSubmittingClaim) {
+        setTimeout(() => {
+          toast({
+            title: "Claim submitted successfully",
+            description: `Claim ${data.claimNumber} has been created and is under review.`,
+          });
+        }, 100);
+        
+        form.reset();
+        setEvidenceFiles([]);
+        queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
+      }
       
-      form.reset();
-      setEvidenceFiles([]);
-      queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
+      setIsSubmittingClaim(false);
     },
     onError: (error) => {
       console.error("Claim submission failed:", error);
+      setIsSubmittingClaim(false);
       toast({
         title: "Error submitting claim",
         description: "Please try again or contact support.",
@@ -78,8 +88,9 @@ export default function ClaimsIntake() {
   });
 
   const onSubmit = useCallback((data: ClaimFormData) => {
-    // Ensure we only submit when the form is explicitly submitted
+    // Ensure we only submit when the form is explicitly submitted via Submit button
     console.log("Form submitted with data:", data);
+    console.log("Submit button clicked - initiating claim submission");
     
     submitClaimMutation.mutate({
       ...data,
