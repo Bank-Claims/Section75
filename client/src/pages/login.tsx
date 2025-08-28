@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import { University, LogIn } from "lucide-react";
 
 const loginSchema = z.object({
@@ -18,12 +17,9 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-interface LoginProps {
-  onLoginSuccess: () => void;
-}
-
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login() {
   const { toast } = useToast();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginForm>({
@@ -34,32 +30,23 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     },
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginForm) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
-    },
-    onSuccess: () => {
+  const onSubmit = async (data: LoginForm) => {
+    setIsLoading(true);
+    try {
+      await login(data.username, data.password);
       toast({
         title: "Login successful",
         description: "Welcome to the Claims Lifecycle System",
       });
-      onLoginSuccess?.();
-    },
-    onError: (error: any) => {
+    } catch (error: any) {
       toast({
         title: "Login failed",
         description: error.message || "Invalid username or password",
         variant: "destructive",
       });
-    },
-  });
-
-  const onSubmit = (data: LoginForm) => {
-    setIsLoading(true);
-    loginMutation.mutate(data, {
-      onSettled: () => setIsLoading(false),
-    });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
