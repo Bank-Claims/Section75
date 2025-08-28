@@ -59,21 +59,18 @@ export default function ClaimsIntake() {
     },
     onSuccess: (data) => {
       console.log("Claim submission successful:", data);
+      console.log("isSubmittingClaim state:", isSubmittingClaim);
       
-      // Only show success message if we're actually submitting a claim
-      if (isSubmittingClaim) {
-        setTimeout(() => {
-          toast({
-            title: "Claim submitted successfully",
-            description: `Claim ${data.claimNumber} has been created and is under review.`,
-          });
-        }, 100);
-        
-        form.reset();
-        setEvidenceFiles([]);
-        queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
-      }
+      // Always show success message when claim submission completes
+      console.log("Showing claim success toast");
+      toast({
+        title: "Claim submitted successfully",
+        description: `Claim ${data.claimNumber} has been created and is under review.`,
+      });
       
+      form.reset();
+      setEvidenceFiles([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
       setIsSubmittingClaim(false);
     },
     onError: (error) => {
