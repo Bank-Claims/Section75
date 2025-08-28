@@ -46,10 +46,14 @@ export default function ClaimsIntake() {
   // Submit claim mutation
   const submitClaimMutation = useMutation({
     mutationFn: async (data: ClaimFormData & { evidenceFiles: any[] }) => {
+      console.log("Mutation started for claim submission");
       const response = await apiRequest("POST", "/api/claims", data);
-      return response.json();
+      const result = await response.json();
+      console.log("Claim submission response:", result);
+      return result;
     },
     onSuccess: (data) => {
+      console.log("Claim submission successful:", data);
       toast({
         title: "Claim submitted successfully",
         description: `Claim ${data.claimNumber} has been created and is under review.`,
@@ -58,7 +62,8 @@ export default function ClaimsIntake() {
       setEvidenceFiles([]);
       queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Claim submission failed:", error);
       toast({
         title: "Error submitting claim",
         description: "Please try again or contact support.",
@@ -68,6 +73,9 @@ export default function ClaimsIntake() {
   });
 
   const onSubmit = useCallback((data: ClaimFormData) => {
+    // Ensure we only submit when the form is explicitly submitted
+    console.log("Form submitted with data:", data);
+    
     submitClaimMutation.mutate({
       ...data,
       evidenceFiles: evidenceFiles.map(file => ({
@@ -100,9 +108,10 @@ export default function ClaimsIntake() {
     if (uploadedFiles) {
       setEvidenceFiles(prev => [...prev, ...uploadedFiles]);
       
+      // Only show file upload success, not claim submission success
       toast({
-        title: "Files uploaded successfully",
-        description: `${uploadedFiles.length} file(s) uploaded`,
+        title: "Evidence files uploaded",
+        description: `${uploadedFiles.length} file(s) uploaded successfully`,
       });
     }
   }, [toast]);
