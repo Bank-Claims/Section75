@@ -54,10 +54,15 @@ export default function ClaimsIntake() {
     },
     onSuccess: (data) => {
       console.log("Claim submission successful:", data);
-      toast({
-        title: "Claim submitted successfully",
-        description: `Claim ${data.claimNumber} has been created and is under review.`,
-      });
+      
+      // Clear any existing toasts first to avoid confusion
+      setTimeout(() => {
+        toast({
+          title: "✅ Claim submitted successfully",
+          description: `Claim ${data.claimNumber} has been created and is under review.`,
+        });
+      }, 100);
+      
       form.reset();
       setEvidenceFiles([]);
       queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
@@ -115,9 +120,9 @@ export default function ClaimsIntake() {
         return newFiles;
       });
       
-      // Show immediate success notification
+      // Show immediate file upload success notification (distinct from claim submission)
       toast({
-        title: "Evidence files uploaded",
+        title: "📁 Evidence files uploaded",
         description: `${uploadedFiles.length} file(s) uploaded successfully`,
       });
     }
