@@ -97,6 +97,8 @@ export default function ClaimsIntake() {
   }, []);
 
   const handleUploadComplete = useCallback((result: any) => {
+    console.log("File upload completed:", result);
+    
     const uploadedFiles = result.successful?.map((file: any) => ({
       id: file.id || Math.random().toString(36).substring(7),
       name: file.name || "Unknown file",
@@ -105,10 +107,15 @@ export default function ClaimsIntake() {
       url: file.uploadURL || file.url,
     }));
 
-    if (uploadedFiles) {
-      setEvidenceFiles(prev => [...prev, ...uploadedFiles]);
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      // Immediately add files to evidence list
+      setEvidenceFiles(prev => {
+        const newFiles = [...prev, ...uploadedFiles];
+        console.log("Updated evidence files:", newFiles);
+        return newFiles;
+      });
       
-      // Only show file upload success, not claim submission success
+      // Show immediate success notification
       toast({
         title: "Evidence files uploaded",
         description: `${uploadedFiles.length} file(s) uploaded successfully`,

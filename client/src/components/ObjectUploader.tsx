@@ -78,7 +78,7 @@ export function ObjectUploader({
         formData.append('files', uploadingFile.file);
       });
 
-      // Upload files
+      // Upload files with progress tracking
       const response = await fetch('/api/upload-evidence', {
         method: 'POST',
         body: formData,
@@ -95,16 +95,25 @@ export function ObjectUploader({
           uploadURL: result.files[index]?.url
         })));
 
-        // Call onComplete
+        // Call onComplete immediately
+        onComplete?.({
+          successful: result.files.map((file: any) => ({
+            name: file.name,
+            uploadURL: file.url,
+            id: file.id,
+            size: files.find(f => f.file.name === file.name)?.file.size || 0,
+            type: files.find(f => f.file.name === file.name)?.file.type || "application/octet-stream"
+          }))
+        });
+
+        // Close modal immediately after successful upload
         setTimeout(() => {
-          onComplete?.({
-            successful: result.files.map((file: any) => ({
-              name: file.name,
-              uploadURL: file.url,
-              id: file.id
-            }))
-          });
-        }, 500);
+          setShowModal(false);
+          setUploadingFiles([]);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }, 1000);
       } else {
         throw new Error('Upload failed');
       }
