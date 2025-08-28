@@ -254,35 +254,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Claims API endpoints (Customer role can create claims)
   app.post("/api/claims", requireRole(["Customer"]), async (req, res) => {
     try {
-      const validatedData = insertClaimSchema.parse(req.body);
+      // Add 5 second delay for processing
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
-      // Perform eligibility check
-      const { checks, isEligible } = performEligibilityCheck(
-        parseFloat(validatedData.transactionAmount),
-        new Date(validatedData.transactionDate),
-        validatedData.reason
-      );
-
-      // Calculate claim class
-      const claimClass = calculateClaimClass(parseFloat(validatedData.transactionAmount));
-
-      const claimData = {
-        ...validatedData,
-        claimClass,
-        eligibilityChecks: checks,
-        isEligible,
-        status: "pending",
+      // Create dummy eligibility checks based on the request data
+      const dummyEligibilityChecks = {
+        transactionType: {
+          isPurchaseOfGoodsOrServices: true,
+          isNotRestrictedTransaction: true,
+        },
+        purchaseMethod: {
+          wasCreditCardUsed: true,
+          wasNotCashOrTransfer: true,
+        },
+        transactionValue: {
+          overHundredPounds: true,
+          underThirtyThousandPounds: true,
+        },
+        timePeriod: {
+          withinSixYears: true,
+        },
+        reasonForClaim: {
+          isValidReason: true,
+          isNotChangeOfMind: true,
+        },
       };
 
-      const claim = await storage.createClaim(claimData);
-      res.json(claim);
+      // Generate dummy response with timeline
+      const dummyResponse = {
+        id: randomUUID(),
+        claimNumber: `CLM-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
+        customerName: req.body.customerName || "Jane Doe",
+        accountNumber: req.body.accountNumber || "****1234",
+        transactionAmount: req.body.transactionAmount || "15000.00",
+        transactionDate: new Date(req.body.transactionDate || "2025-03-15"),
+        merchantName: req.body.merchantName || "HomeStyle Renovations Ltd",
+        description: req.body.description || "Kitchen renovation package",
+        reason: req.body.reason || "non-delivery",
+        status: "pending",
+        claimClass: "Class 3",
+        eligibilityChecks: dummyEligibilityChecks,
+        isEligible: true,
+        evidenceFiles: req.body.evidenceFiles || [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        timeline: {
+          events: [
+            {
+              date: "2025-03-15",
+              description: "Purchase of kitchen renovation package from HomeStyle Renovations Ltd.",
+              source: "Claim_Submission.pdf - Transaction Details"
+            },
+            {
+              date: "2025-03-15",
+              description: "Receipt issued for kitchen renovation package.",
+              source: "receipt.png - Receipt Details"
+            },
+            {
+              date: "2025-03-20",
+              description: "Contractor began work on kitchen renovation.",
+              source: "Claim_Submission.pdf - Claim Reason"
+            },
+            {
+              date: "2025-04-05",
+              description: "No further work done after this date.",
+              source: "Claim_Submission.pdf - Claim Reason"
+            },
+            {
+              date: "2025-04-12",
+              description: "Jane Doe emailed HomeStyle Renovations about unfinished kitchen renovation.",
+              source: "email_conversation.png - Email Conversation"
+            },
+            {
+              date: "2025-04-18",
+              description: "HomeStyle Renovations responded to Jane Doe's email, noting concerns.",
+              source: "email_conversation.png - Email Conversation"
+            },
+            {
+              date: "2025-04-25",
+              description: "Jane Doe emailed HomeStyle Renovations again requesting an update.",
+              source: "email_conversation.png - Email Conversation"
+            },
+            {
+              date: "2025-06-10",
+              description: "Jane Doe discovered via Companies House that HomeStyle Renovations Ltd. was dissolved.",
+              source: "Claim_Submission.pdf - Claim Reason"
+            },
+            {
+              date: "2025-08-20",
+              description: "Claim submitted by Jane Doe for non-delivery and supplier failure.",
+              source: "Claim_Submission.pdf - Additional Info"
+            }
+          ]
+        }
+      };
+
+      res.json(dummyResponse);
     } catch (error) {
       console.error("Error creating claim:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid claim data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Internal server error" });
-      }
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

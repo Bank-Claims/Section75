@@ -1,0 +1,47 @@
+"timeline": {
+        "events": [
+            {
+                "date": "2025-03-15",
+                "description": "Purchase of kitchen renovation package from HomeStyle Renovations Ltd.",
+                "source": "Claim_Submission.pdf - Transaction Details"
+            },
+            {
+                "date": "2025-03-15",
+                "description": "Receipt issued for kitchen renovation package.",
+                "source": "receipt.png - Receipt Details"
+            },
+            {
+                "date": "2025-03-20",
+                "description": "Contractor began work on kitchen renovation.",
+                "source": "Claim_Submission.pdf - Claim Reason"
+            },
+            {
+                "date": "2025-04-05",
+                "description": "No further work done after this date.",
+                "source": "Claim_Submission.pdf - Claim Reason"
+            },
+            {
+                "date": "2025-04-12",
+                "description": "Jane Doe emailed HomeStyle Renovations about unfinished kitchen renovation.",
+                "source": "email_conversation.png - Email Conversation"
+            },
+            {
+                "date": "2025-04-18",
+                "description": "HomeStyle Renovations responded to Jane Doe's email, noting concerns.",
+                "source": "email_conversation.png - Email Conversation"
+            },
+            {
+                "date": "2025-04-25",
+                "description": "Jane Doe emailed HomeStyle Renovations again requesting an update.",
+                "source": "email_conversation.png - Email Conversation"
+            },
+            {
+                "date": "2025-06-10",
+                "description": "Jane Doe discovered via Companies House that HomeStyle Renovations Ltd. was dissolved.",
+                "source": "Claim_Submission.pdf - Claim Reason"
+            },
+            {
+                "date": "2025-08-20",
+                "description": "Claim submitted by Jane Doe for non-delivery and supplier failure.",
+                "source": "Claim_Submission.pdf - Additional Info"
+            }
